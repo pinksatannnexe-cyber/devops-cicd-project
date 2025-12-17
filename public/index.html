@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DevOps CI/CD Project</title>
+    <title>Météo App - DevOps CI/CD</title>
     <style>
         * {
             margin: 0;
@@ -18,6 +18,7 @@
             justify-content: center;
             align-items: center;
             color: white;
+            padding: 20px;
         }
         .container {
             text-align: center;
@@ -26,23 +27,38 @@
             backdrop-filter: blur(10px);
             border-radius: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
-        }
-        h1 {
-            font-size: 3em;
-            margin-bottom: 20px;
+            max-width: 500px;
+            width: 100%;
             animation: fadeIn 1s;
         }
-        p {
-            font-size: 1.2em;
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            font-size: 1em;
             margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        input {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1em;
+            outline: none;
         }
         button {
             background: white;
             color: #667eea;
             border: none;
             padding: 15px 30px;
-            font-size: 1.1em;
+            font-size: 1em;
             border-radius: 50px;
             cursor: pointer;
             transition: all 0.3s;
@@ -52,40 +68,145 @@
             transform: scale(1.05);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
-        .response {
+        .weather-info {
+            display: none;
             margin-top: 20px;
-            padding: 15px;
+            padding: 20px;
             background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
+            border-radius: 15px;
+            animation: slideIn 0.5s;
+        }
+        .weather-info.show {
+            display: block;
+        }
+        .city-name {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        .temp {
+            font-size: 4em;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .description {
+            font-size: 1.3em;
+            text-transform: capitalize;
+            margin-bottom: 20px;
+        }
+        .details {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .detail-item {
+            text-align: center;
+        }
+        .detail-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        .detail-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .error {
+            color: #ff6b6b;
+            margin-top: 20px;
             font-size: 1.1em;
+            display: none;
+        }
+        .error.show {
+            display: block;
         }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🚀 DevOps CI/CD</h1>
-        <p>Pipeline automatisé avec GitHub Actions</p>
-        <button onclick="testAPI()">Tester l'API</button>
-        <div id="response" class="response" style="display:none;"></div>
+        <h1>🌤️ Météo App</h1>
+        <p class="subtitle">Pipeline CI/CD avec GitHub Actions</p>
+        
+        <div class="search-box">
+            <input type="text" id="cityInput" placeholder="Entrez une ville..." onkeypress="handleKeyPress(event)">
+            <button onclick="getWeather()">Rechercher</button>
+        </div>
+
+        <div id="weatherInfo" class="weather-info">
+            <div class="city-name" id="cityName"></div>
+            <div class="temp" id="temp"></div>
+            <div class="description" id="description"></div>
+            <div class="details">
+                <div class="detail-item">
+                    <div class="detail-label">Humidité</div>
+                    <div class="detail-value" id="humidity"></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Vent</div>
+                    <div class="detail-value" id="wind"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="error" class="error"></div>
     </div>
 
     <script>
-        async function testAPI() {
-            const responseDiv = document.getElementById('response');
-            try {
-                const res = await fetch('/api/hello');
-                const data = await res.json();
-                responseDiv.innerHTML = `✅ ${data.message}`;
-                responseDiv.style.display = 'block';
-            } catch (error) {
-                responseDiv.innerHTML = `❌ Erreur: ${error.message}`;
-                responseDiv.style.display = 'block';
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                getWeather();
             }
         }
+
+        async function getWeather() {
+            const city = document.getElementById('cityInput').value.trim();
+            const weatherInfo = document.getElementById('weatherInfo');
+            const errorDiv = document.getElementById('error');
+
+            if (!city) {
+                errorDiv.textContent = '⚠️ Veuillez entrer une ville';
+                errorDiv.classList.add('show');
+                weatherInfo.classList.remove('show');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/weather/${city}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('cityName').textContent = data.city;
+                    document.getElementById('temp').textContent = `${data.temp}°C`;
+                    document.getElementById('description').textContent = data.description;
+                    document.getElementById('humidity').textContent = `${data.humidity}%`;
+                    document.getElementById('wind').textContent = `${data.wind} km/h`;
+
+                    weatherInfo.classList.add('show');
+                    errorDiv.classList.remove('show');
+                } else {
+                    errorDiv.textContent = `❌ ${data.error}`;
+                    errorDiv.classList.add('show');
+                    weatherInfo.classList.remove('show');
+                }
+            } catch (error) {
+                errorDiv.textContent = '❌ Erreur de connexion';
+                errorDiv.classList.add('show');
+                weatherInfo.classList.remove('show');
+            }
+        }
+
+        // Charger Paris par défaut
+        window.onload = () => {
+            document.getElementById('cityInput').value = 'Paris';
+            getWeather();
+        };
     </script>
 </body>
 </html>
